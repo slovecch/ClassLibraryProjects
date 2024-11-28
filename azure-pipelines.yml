@@ -42,16 +42,19 @@ steps:
     arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
     
 
-- script: |
-    echo Writing inline NuGet.config
-    echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
+- powershell: |
+    $config = @"
+    <?xml version="1.0" encoding="utf-8"?>
     <configuration>
       <packageSources>
         <clear />
-        <add key=\"Lab4_feed\" value=\"https://pkgs.dev.azure.com/slovecch/Lab4Question1/_packaging/Lab4_feed/nuget/v3/index.json\" />
+        <add key="Lab4_feed" value="https://pkgs.dev.azure.com/slovecch/Lab4Question1/_packaging/Lab4_feed/nuget/v3/index.json" />
       </packageSources>
-    </configuration>" > NuGet.Config
-  displayName: 'Create NuGet.config inline'
+    </configuration>
+    "@
+    $config | Out-File -FilePath "$(Agent.BuildDirectory)/NuGet.Config" -Encoding UTF8
+  displayName: 'Write NuGet.config inline'
+
 
 
 #Push the NuGet package to Azure Artifacts

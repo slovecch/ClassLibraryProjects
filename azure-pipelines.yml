@@ -15,41 +15,38 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
-# Install NuGet if not available
-- task: NuGetToolInstaller@1
+# Ensure the .NET SDK is available
+- task: UseDotNet@2
+  inputs:
+    packageType: 'sdk'
+    version: '8.x'  
 
-# Restore NuGet packages
-- task: NuGetCommand@2
+# Restore dependencies
+- task: DotNetCoreCLI@2
   inputs:
     command: 'restore'
-    restoreSolution: '$(solution)'
+    projects: '**/*.sln'
 
-#Build the solution
-- task: VSBuild@1
+# Build the solution
+- task: DotNetCoreCLI@2
   inputs:
-    solution: '$(solution)'
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
+    command: 'build'
+    projects: '**/*.sln'
+    arguments: '--configuration $(buildConfiguration)'
 
-#Pack the NuGet package
-- task: NuGetCommand@2
+# Pack the NuGet package
+- task: DotNetCoreCLI@2
   inputs:
     command: 'pack'
-    packagesToPack: '**/*.csproj'
-    configuration: '$(buildConfiguration)'
-    versioningScheme: 'byBuildNumber'
+    projects: '**/*.csproj'
+    arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
     
-#Publish the NuGet package to Azure Artifacts
-- task: NuGetCommand@2
+#Push the NuGet package to Azure Artifacts
+- task: DotNetCoreCLI@2
   inputs:
     command: 'push'
     publishVstsFeed: 'Lab4_feed'
-    allowPackageConflicts: true
+    arguments: '--source https://pkgs.dev.azure.com/slovecch/_packaging/Lab4_feed/nuget/v3/index.json'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg'
 
-# Publish build artifacts (optional, for debugging or further use)
-- task: PublishBuildArtifacts@1
-  inputs:
-    pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-    artifactName: 'drop'
-    publishLocation: 'Container'
+

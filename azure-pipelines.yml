@@ -42,18 +42,24 @@ steps:
     arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
     
 
-#Ensure pipeline uses nuget config file
-- task: DotNetCoreCLI@2
-  inputs:
-    command: 'restore'
-    arguments: '--configfile $(System.DefaultWorkingDirectory)/nuget.config'
+- script: |
+    echo Writing inline NuGet.config
+    echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
+    <configuration>
+      <packageSources>
+        <clear />
+        <add key=\"Lab4_feed\" value=\"https://pkgs.dev.azure.com/slovecch/Lab4Question1/_packaging/Lab4_feed/nuget/v3/index.json\" />
+      </packageSources>
+    </configuration>" > NuGet.Config
+  displayName: 'Create NuGet.config inline'
+
 
 #Push the NuGet package to Azure Artifacts
 - task: DotNetCoreCLI@2
   inputs:
     command: 'push'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
-    arguments: '--configfile $(System.DefaultWorkingDirectory)/nuget.config --verbosity detailed --source https://pkgs.dev.azure.com/slovecch/Lab4Question1/_packaging/Lab4_feed/nuget/v3/index.json'
+    arguments: '--verbosity detailed --source https://pkgs.dev.azure.com/slovecch/Lab4Question1/_packaging/Lab4_feed/nuget/v3/index.json'
 
 
    

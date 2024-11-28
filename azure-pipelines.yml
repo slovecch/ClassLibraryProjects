@@ -41,19 +41,24 @@ steps:
     projects: '**/*.csproj'
     arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
     
+- script: |
+    echo Copying nuget.config to the agent's working directory...
+    copy $(System.DefaultWorkingDirectory)/nuget.config $(Build.SourcesDirectory)/NuGet.Config
+  displayName: 'Copy nuget.config to working directory'
+
 #Ensure pipeline uses nuget config file
 - task: DotNetCoreCLI@2
   inputs:
-    command: 'custom'
-    custom: 'restore'
-    arguments: '--configfile nuget.config'
+    command: 'restore'
+    arguments: '--configfile $(System.DefaultWorkingDirectory)/nuget.config'
 
 #Push the NuGet package to Azure Artifacts
 - task: DotNetCoreCLI@2
   inputs:
     command: 'push'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
-    arguments: '--source https://pkgs.dev.azure.com/slovecch/Lab4Question1/_packaging/Lab4_feed/nuget/v3/index.json'
+    arguments: '--configfile $(System.DefaultWorkingDirectory)/nuget.config --source https://pkgs.dev.azure.com/slovecch/Lab4Question1/_packaging/Lab4_feed/nuget/v3/index.json'
+
    
 
 

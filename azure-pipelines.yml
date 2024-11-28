@@ -41,6 +41,13 @@ steps:
     projects: '**/*.csproj'
     arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
     
+#Ensure pipeline uses nuget config file
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'custom'
+    custom: 'restore'
+    arguments: '--configfile nuget.config'
+
 #Push the NuGet package to Azure Artifacts
 - task: DotNetCoreCLI@2
   inputs:

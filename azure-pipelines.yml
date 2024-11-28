@@ -20,42 +20,37 @@ steps:
   inputs:
     packageType: 'sdk'
     version: '8.x'  
+- powershell: |
+    $config = @"
+    <?xml version="1.0" encoding="utf-8"?>
+    <configuration>
+      <packageSources>
+        <clear />
+        <add key="Lab4_feed" value="https://pkgs.dev.azure.com/slovecch/Lab4Question1/_packaging/Lab4_feed/nuget/v3/index.json" />
+      </packageSources>
+    </configuration>
+    "@
+    $config | Out-File -FilePath "$(Agent.BuildDirectory)/NuGet.Config" -Encoding UTF8
+  displayName: 'Write NuGet.config inline'
 
 # Restore dependencies
 - task: DotNetCoreCLI@2
   inputs:
     command: 'restore'
-    projects: '**/*.sln'
+    arguments: '--configfile $(Agent.BuildDirectory)/NuGet.Config'
 
 # Build the solution
 - task: DotNetCoreCLI@2
   inputs:
     command: 'build'
-    projects: '**/*.sln'
-    arguments: '--configuration $(buildConfiguration)'
+    arguments: '--configuration Release'
 
-# Pack the NuGet package
-- task: DotNetCoreCLI@2
-  inputs:
-    command: 'pack'
-    projects: '**/*.csproj'
-    arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
-    
-
-- task: DotNetCoreCLI@2
-  inputs:
-    command: 'restore'
-    arguments: '--configfile $(Agent.BuildDirectory)/NuGet.Config'
-
-
-
-
-#Push the NuGet package to Azure Artifacts
+# Push NuGet package to Azure Artifacts
 - task: DotNetCoreCLI@2
   inputs:
     command: 'push'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
-    arguments: '--configfile $(Agent.BuildDirectory)/NuGet.Config --verbosity detailed --source https://pkgs.dev.azure.com/slovecch/Lab4Question1/_packaging/Lab4_feed/nuget/v3/index.json'
+    arguments: '--configfile $(Agent.BuildDirectory)/NuGet.Config --source https://pkgs.dev.azure.com/slovecch/Lab4Question1/_packaging/Lab4_feed/nuget/v3/index.json'
 
 
    

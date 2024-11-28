@@ -46,7 +46,7 @@ steps:
   inputs:
     command: 'push'
     publishVstsFeed: 'Lab4_feed'
-    arguments: '--source https://pkgs.dev.azure.com/slovecch/_packaging/Lab4_feed/nuget/v3/index.json'
+    arguments: '--source https://pkgs.dev.azure.com/slovecch/Lab4Question1/_packaging/Lab4_feed/nuget/v3/index.json'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg'
 
 

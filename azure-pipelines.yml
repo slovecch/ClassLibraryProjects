@@ -1,72 +1,56 @@
-# ASP.NET
-# Build and test ASP.NET projects.
-# Add steps that publish symbols, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/apps/aspnet/build-aspnet-4
-
-trigger:
-- master
-
-pool:
-  name: 'Default'
-
 variables:
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
-  buildConfiguration: 'Release'
-
-steps:
-# Ensure the .NET SDK is available
-- task: UseDotNet@2
-  inputs:
-    packageType: 'sdk'
-    version: '8.x'  
-- powershell: |
-    $config = @"
-    <?xml version="1.0" encoding="utf-8"?>
-    <configuration>
-      <packageSources>
-        <clear />
-        <add key="Lab4_feed" value="https://pkgs.dev.azure.com/slovecch/Lab4Question1/_packaging/Lab4_feed/nuget/v3/index.json" />
-      </packageSources>
-    </configuration>
-    "@
-    $config | Out-File -FilePath "$(Agent.BuildDirectory)/NuGet.Config" -Encoding UTF8
-  displayName: 'Write NuGet.config inline'
-
-# Restore dependencies
-- task: DotNetCoreCLI@2
-  inputs:
-    command: 'restore'
-    arguments: '--configfile $(Agent.BuildDirectory)/NuGet.Config'
-
-# Build the solution
-- task: DotNetCoreCLI@2
-  inputs:
-    command: 'build'
-    arguments: '--configuration Release'
-
-# Pack the NuGet package
-- task: DotNetCoreCLI@2
-  inputs:
-    command: 'pack'
-    projects: '**/*.csproj'
-    arguments: '--output $(Build.ArtifactStagingDirectory)'
-    configuration: 'Release'
-
-# List contents of the output directory
-- script: |
-    echo "Listing files in $(Build.ArtifactStagingDirectory):"
-    dir "$(Build.ArtifactStagingDirectory)"
-  displayName: 'List output directory contents'
-
-# Push NuGet package to Azure Artifacts
-- task: DotNetCoreCLI@2
-  inputs:
-    command: 'push'
-    packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
-    arguments: '--configfile $(Agent.BuildDirectory)/NuGet.Config --verbosity detailed  --source https://pkgs.dev.azure.com/slovecch/Lab4Question1/_packaging/Lab4_feed/nuget/v3/index.json'
-
-
-   
-
-
+- name: BuildParameters.solution
+  value: '**\*.sln'
+- name: BuildParameters.ArtifactName
+  value: drop
+trigger:
+  branches:
+    include:
+    - master
+name: $(date:yyyyMMdd)$(rev:.r)
+jobs:
+- job: Job_1
+  displayName: Agent job 1
+  pool:
+    name: Default
+    demands:
+    - Agent.Name -equals self-hosted-agent
+  steps:
+  - checkout: self
+    clean: true
+    fetchTags: false
+  - task: bleddynrichards.Assembly-Info-Task.Assembly-Info-NetCore.Assembly-Info-NetCore@3
+    displayName: Set Assembly Manifest Data
+  - task: NuGetToolInstaller@0
+    displayName: Use NuGet 6.8
+    inputs:
+      versionSpec: 6.8
+  - task: NuGetCommand@2
+    displayName: NuGet restore
+    inputs:
+      solution: $(BuildParameters.solution)
+  - task: VSBuild@1
+    displayName: Build solution
+    inputs:
+      solution: $(BuildParameters.solution)
+      msbuildArgs: /p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactstagingdirectory)\\"
+      platform: $(BuildPlatform)
+      configuration: $(BuildConfiguration)
+  - task: DotNetCoreCLI@2
+    displayName: dotnet pack
+    inputs:
+      command: pack
+      versioningScheme: byPrereleaseNumber
+  - task: DotNetCoreCLI@2
+    displayName: dotnet push
+    inputs:
+      command: push
+      feedPublish: bd865855-07cd-4da9-80dc-a61cadcd8703/2fa8d645-4405-4cbe-b582-6eb57a8cf01c
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifact
+    condition: succeededOrFailed()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: $(BuildParameters.ArtifactName)
+      TargetPath: '\\my\share\$(Build.DefinitionName)\$(Build.BuildNumber)'
+...
